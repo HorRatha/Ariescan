@@ -45,11 +45,11 @@ Instead of manually testing every endpoint in Postman, developers can use Ariesc
 
 ### Option 1: Local Setup
 
-#### Backend
+#### Backend (FastAPI)
 ```bash
 cd backend
-npm install        # or 'pip install -r requirements.txt' for Python
-npm start          # or 'python app.py'
+pip install -r requirements.txt
+uvicorn app.main:app --reload --port 8081
 ```
 
 #### Frontend
@@ -67,7 +67,8 @@ docker-compose up
 
 The application will be available at:
 - **Frontend**: http://localhost:3000
-- **Backend API**: http://localhost:5000
+- **Backend API**: http://localhost:8081
+- **Swagger UI**: http://localhost:8081/docs
 
 ---
 
@@ -128,10 +129,10 @@ Ariescan/
 Create a `.env` file in the `backend/` directory:
 
 ```env
-PORT=5000
-NODE_ENV=development
-FRONTEND_URL=http://localhost:3000
-LOG_LEVEL=info
+DATABASE_URL=sqlite:///./ariescan.db
+REQUEST_TIMEOUT_SECONDS=15
+MAX_TEST_CASES_PER_RUN=100
+ALLOW_PRIVATE_TARGETS=true
 ```
 
 ### Frontend Environment Variables
@@ -139,8 +140,8 @@ LOG_LEVEL=info
 Create a `.env` file in the `frontend/` directory:
 
 ```env
-REACT_APP_API_URL=http://localhost:5000
-REACT_APP_API_TIMEOUT=30000
+NEXT_PUBLIC_API_URL=http://localhost:8081
+NEXT_PUBLIC_API_TIMEOUT=30000
 ```
 
 ---
@@ -148,16 +149,16 @@ REACT_APP_API_TIMEOUT=30000
 ## 🧪 Testing
 
 ```bash
-# Backend tests
+# Backend validation
 cd backend
-npm run test
+python -m compileall app
 
 # Frontend tests
 cd frontend
 npm run test
 
-# All tests with Docker
-docker-compose -f docker/docker-compose.yml run --rm backend npm run test
+# Run the backend with Docker
+docker compose -f docker/docker-compose.yml up --build backend
 ```
 
 ---

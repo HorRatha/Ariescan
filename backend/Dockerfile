@@ -1,38 +1,10 @@
 # Build stage
-FROM node:18-alpine AS builder
-
+FROM python:3.12-slim
 WORKDIR /app
-
-# Copy package files
-COPY package*.json ./
-
-# Install dependencies
-RUN npm ci
-
-# Copy source code
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
-
-# Build stage
-RUN npm run build || echo "No build script"
-
-# Production stage
-FROM node:18-alpine
-
-WORKDIR /app
-
-# Install production dependencies only
-COPY package*.json ./
-RUN npm ci --only=production
-
-# Copy built app from builder stage
-COPY --from=builder /app .
-
-# Expose port
-EXPOSE 5000
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:5000/health', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"
-
-# Start application
-CMD ["npm", "start"]
+EXPOSE 8081
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8081/health')"
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8081"]
