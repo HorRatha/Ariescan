@@ -200,15 +200,6 @@ Found a bug? Have a feature request?
 
 ---
 
-## 📦 Deployment
-
-### Deploy to Production
-
-See deployment guides:
-- [AWS Deployment](./docs/DEPLOY_AWS.md)
-- [Docker Hub](./docs/DEPLOY_DOCKER.md)
-- [Heroku](./docs/DEPLOY_HEROKU.md)
-
 ---
 
 ## 🙏 Acknowledgments
@@ -229,6 +220,6 @@ See deployment guides:
 
 ---
 
-**Made with ❤️ by the Ariescan team**
+**Made with ❤️ by the Hor Ratha**
 
 [⭐ Star us on GitHub!](https://github.com/HorRatha/Ariescan)

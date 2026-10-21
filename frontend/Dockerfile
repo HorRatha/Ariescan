@@ -12,20 +12,27 @@ RUN npm ci
 # Copy source code
 COPY . .
 
-# Build the React app
+# Build Next.js app
 RUN npm run build
 
-# Production stage - using nginx
-FROM nginx:alpine
+# Production stage
+FROM node:18-alpine
 
-# Copy built app from builder
-COPY --from=builder /app/build /usr/share/nginx/html
+WORKDIR /app
 
-# Copy nginx config
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Copy package files
+COPY package*.json ./
+
+# Install production dependencies only
+RUN npm ci --only=production
+
+# Copy built app from builder stage
+COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/next.config.ts ./next.config.ts
 
 # Expose port
 EXPOSE 3000
 
-# Start nginx
-CMD ["nginx", "-g", "daemon off;"]
+# Start Next.js app
+CMD ["npm", "start"]
