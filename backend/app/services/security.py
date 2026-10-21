@@ -22,10 +22,13 @@ def validate_target_url(value: str) -> str:
         raise HTTPException(422, "Target host could not be resolved")
     for raw_address in addresses:
         address = ipaddress.ip_address(raw_address)
-        if address.is_multicast or address.is_unspecified or address.is_reserved:
+        is_local_address = address.is_private or address.is_loopback or address.is_link_local
+        if address.is_multicast or address.is_unspecified:
             raise HTTPException(422, "Unsafe target address is blocked")
-        if (address.is_private or address.is_loopback or address.is_link_local) and not settings.allow_private_targets:
+        if is_local_address and not settings.allow_private_targets:
             raise HTTPException(422, "Private network targets are disabled")
+        if address.is_reserved and not (settings.allow_private_targets and address.is_loopback):
+            raise HTTPException(422, "Unsafe target address is blocked")
     return value.rstrip("/")
 
 
