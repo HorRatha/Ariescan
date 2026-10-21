@@ -21,7 +21,7 @@ Reports can be exported as JSON (`/report.json`), CSV (`/report.csv`), or HTML (
 ## API workflow
 
 1. `POST /api/projects` creates a target API project.
-2. `POST /api/projects/{project_id}/specs/import` imports OpenAPI 3.x JSON/YAML from `document_url` or inline `content`.
+2. `POST /api/projects/{project_id}/specs/import` imports OpenAPI 3.x JSON/YAML or a Postman Collection v2 JSON export from `document_url` or inline `content`. A `documenter.getpostman.com` link is a browser page, so export the collection from Postman and upload that JSON instead.
 3. `POST /api/projects/{project_id}/test-cases/generate` creates rule-based checks.
 4. `POST /api/projects/{project_id}/test-runs` starts execution in the background.
 5. `GET /api/test-runs/{run_id}/results` retrieves detailed PASS, FAIL, or ERROR results.

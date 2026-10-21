@@ -29,6 +29,11 @@ from .services.generator import generate
 from .services.openapi import extract_endpoints, parse_document
 from .services.security import redact, validate_target_url
 
+OPENAPI_PATHS = (
+    "", "/openapi.json", "/swagger.json", "/api-docs.json",
+    "/docs/api-docs.json", "/api/openapi.json", "/api/swagger.json", "/v3/api-docs",
+)
+
 app = FastAPI(
     title="Ariescan API",
     version="1.0.0",
@@ -157,6 +162,47 @@ async def import_spec(project_id: str, data: ImportSpec, db: Session = Depends(g
         "version": info.get("version", "unknown"),
         "endpoints_discovered": len(endpoint_data),
     }
+
+
+@app.post("/api/projects/{project_id}/specs/discover", tags=["OpenAPI"])
+async def discover_spec(project_id: str, db: Session = Depends(get_db)):
+    """Find an OpenAPI document at common public API documentation paths."""
+    project = one(db, Project, project_id)
+    base_url = validate_target_url(project.base_url)
+    discovered_url = None
+    content = None
+
+    async with httpx.AsyncClient(timeout=settings.request_timeout_seconds, follow_redirects=False) as client:
+        for path in OPENAPI_PATHS:
+            url = f"{base_url}{path}"
+            try:
+                response = await client.get(url)
+                if response.is_success:
+                    parse_document(response.text)
+                    discovered_url, content = url, response.text
+                    break
+            except (httpx.HTTPError, HTTPException):
+                continue
+
+    if content is None:
+        raise HTTPException(
+            422,
+            "No public OpenAPI document was found. Upload an OpenAPI JSON/YAML file or expose one from the target API.",
+        )
+
+    spec, fmt = parse_document(content)
+    info = spec.get("info", {})
+    endpoint_data = extract_endpoints(spec)
+    old = db.scalars(select(Endpoint.id).where(Endpoint.project_id == project_id)).all()
+    old_cases = db.scalars(select(TestCase.id).where(TestCase.endpoint_id.in_(old))).all()
+    db.execute(delete(TestResult).where(TestResult.test_case_id.in_(old_cases)))
+    db.execute(delete(TestCase).where(TestCase.endpoint_id.in_(old)))
+    db.execute(delete(Endpoint).where(Endpoint.project_id == project_id))
+    db.execute(delete(ApiSpec).where(ApiSpec.project_id == project_id))
+    db.add(ApiSpec(project_id=project_id, title=info.get("title", "Untitled API"), version=info.get("version", "unknown"), spec_format=fmt, spec_content=content))
+    db.add_all([Endpoint(project_id=project_id, **item) for item in endpoint_data])
+    db.commit()
+    return {"title": info.get("title", "Untitled API"), "version": info.get("version", "unknown"), "endpoints_discovered": len(endpoint_data), "document_url": discovered_url}
 
 
 @app.get("/api/projects/{project_id}/endpoints", response_model=list[EndpointOut], tags=["OpenAPI"])
